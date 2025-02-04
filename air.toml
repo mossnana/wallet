@@ -1,0 +1,8 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -ldflags \"-X main.Version=develop\" -o ./tmp/wallet-api ./cmd/api/main.go"
+bin = "./tmp/wallet-api"
+include_ext = ["go"]
+include_dir = ["internal","pkg"]
