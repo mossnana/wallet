@@ -13,14 +13,16 @@ type TransactionService struct {
 	userBalanceRepository      domains.UserBalanceRepository
 	transactionDBRepository    domains.TransactionRepository
 	transactionCacheRepository domains.TransactionRepository
+	logger                     domains.Logger
 }
 
-func NewTransactionService(userDBRepository domains.UserRepository, userBalanceRepository domains.UserBalanceRepository, transactionDBRepository domains.TransactionRepository, transactionCacheRepository domains.TransactionRepository) *TransactionService {
+func NewTransactionService(userDBRepository domains.UserRepository, userBalanceRepository domains.UserBalanceRepository, transactionDBRepository domains.TransactionRepository, transactionCacheRepository domains.TransactionRepository, logger domains.Logger) *TransactionService {
 	return &TransactionService{
 		userDBRepository:           userDBRepository,
 		transactionDBRepository:    transactionDBRepository,
 		transactionCacheRepository: transactionCacheRepository,
 		userBalanceRepository:      userBalanceRepository,
+		logger:                     logger,
 	}
 }
 
@@ -32,6 +34,7 @@ func (t *TransactionService) VerifyTransaction(payload ports.VerifyTransactionPa
 	if e != nil {
 		return
 	}
+	t.logger.Debug("begin transaction", "user_id", payload.UserID, "amount", payload.Amount)
 
 	// check user exist
 	user, e := t.userDBRepository.GetByID(payload.UserID, tx)
@@ -39,6 +42,7 @@ func (t *TransactionService) VerifyTransaction(payload ports.VerifyTransactionPa
 		tx.Rollback()
 		return
 	}
+	t.logger.Info("found user", "user_id", user.ID)
 
 	// ensure user balance can create transaction
 	e = t.userBalanceRepository.VerifyUserBalanceWithAmount(user.ID, payload.Amount, tx)
@@ -46,6 +50,15 @@ func (t *TransactionService) VerifyTransaction(payload ports.VerifyTransactionPa
 		tx.Rollback()
 		return
 	}
+	t.logger.Info("verify user balance")
+
+	// allocate balance for this transaction
+	e = t.userBalanceRepository.AllocateUserBalance(user.ID, payload.Amount, tx)
+	if e != nil {
+		tx.Rollback()
+		return
+	}
+	t.logger.Info("allcated user balance")
 
 	// store transaction
 	newTransaction := domains.Transaction{
@@ -65,6 +78,7 @@ func (t *TransactionService) VerifyTransaction(payload ports.VerifyTransactionPa
 		tx.Rollback()
 		return
 	}
+	t.logger.Info("create transaction", "transaction_id", newTransaction.ID)
 
 	e = tx.Commit()
 
@@ -131,6 +145,9 @@ func (t *TransactionService) ConfirmTransaction(payload ports.ConfirmTransaction
 		return
 	}
 
+	// get current balance
+	userBalance, _ := t.userBalanceRepository.GetByUserID(result.UserID, tx)
+
 	// commit
 	e = tx.Commit()
 
@@ -139,7 +156,7 @@ func (t *TransactionService) ConfirmTransaction(payload ports.ConfirmTransaction
 		TransactionID: transaction.ID,
 		Amount:        transaction.Amount,
 		Status:        "confirmed",
-		Balance:       0, // TODO
+		Balance:       userBalance.Balance,
 	}
 
 	return

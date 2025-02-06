@@ -9,11 +9,12 @@ import (
 )
 
 type TransactionDBRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	logger domains.Logger
 }
 
-func NewTransactionDBRepository(db *gorm.DB) *TransactionDBRepository {
-	return &TransactionDBRepository{db: db}
+func NewTransactionDBRepository(db *gorm.DB, logger domains.Logger) *TransactionDBRepository {
+	return &TransactionDBRepository{db: db, logger: logger}
 }
 
 func (t *TransactionDBRepository) BeginTx(ctx context.Context) (domains.Tx, error) {

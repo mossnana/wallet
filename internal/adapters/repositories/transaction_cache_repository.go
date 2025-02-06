@@ -12,10 +12,11 @@ import (
 
 type TransactionCacheRepository struct {
 	client *redis.Client
+	logger domains.Logger
 }
 
-func NewTransactionCacheRepository(client *redis.Client) *TransactionCacheRepository {
-	return &TransactionCacheRepository{client: client}
+func NewTransactionCacheRepository(client *redis.Client, logger domains.Logger) *TransactionCacheRepository {
+	return &TransactionCacheRepository{client: client, logger: logger}
 }
 
 func (t *TransactionCacheRepository) BeginTx(ctx context.Context) (domains.Tx, error) {
@@ -34,6 +35,7 @@ func (t *TransactionCacheRepository) GetByID(id string, tx domains.Tx) (domains.
 
 	var transaction domains.Transaction
 	e = json.Unmarshal([]byte(val), &transaction)
+	t.logger.Info("hit cache !!!", "transaction_id", transaction.ID)
 
 	return transaction, e
 }
@@ -47,6 +49,7 @@ func (t *TransactionCacheRepository) CreateTransaction(transaction *domains.Tran
 	}
 
 	e = t.client.Set(context.Background(), key, string(b), time.Hour*23).Err()
+	t.logger.Info("create cache !!!")
 
 	return e
 }
@@ -63,6 +66,8 @@ func (t *TransactionCacheRepository) UpdateStatus(id string, status string, tx d
 	if e != nil {
 		return e
 	}
+
+	t.logger.Info("update cache !!!")
 
 	return nil
 }

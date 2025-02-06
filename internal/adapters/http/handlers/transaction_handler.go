@@ -41,7 +41,7 @@ func (h *TransactionHandler) VerifyTransaction(c *fiber.Ctx) error {
 		PaymentMethod: req.PaymentMethod,
 	})
 	if e != nil {
-		return c.Status(http.StatusInternalServerError).JSON(responses.NewErrorResponse(http.StatusInternalServerError, "Invalid request body"))
+		return c.Status(http.StatusInternalServerError).JSON(responses.NewErrorResponse(http.StatusInternalServerError, e.Error()))
 	}
 
 	return c.JSON(responses.VerifyTransactionResponse{
@@ -69,7 +69,7 @@ func (h *TransactionHandler) ConfirmTransaction(c *fiber.Ctx) error {
 		TransactionID: req.TransactionID,
 	})
 	if e != nil {
-		return c.Status(http.StatusInternalServerError).JSON(responses.NewErrorResponse(http.StatusInternalServerError, "Invalid request body"))
+		return c.Status(http.StatusInternalServerError).JSON(responses.NewErrorResponse(http.StatusInternalServerError, e.Error()))
 	}
 
 	return c.JSON(responses.ConfirmTransactionResponse{

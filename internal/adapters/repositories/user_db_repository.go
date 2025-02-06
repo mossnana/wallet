@@ -8,10 +8,11 @@ import (
 )
 
 type UserDBRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	logger domains.Logger
 }
 
-func NewUserDBRepository(db *gorm.DB) *UserDBRepository {
+func NewUserDBRepository(db *gorm.DB, logger domains.Logger) *UserDBRepository {
 	return &UserDBRepository{
 		db: db,
 	}
